@@ -120,3 +120,26 @@ std::string result = boost::mustache::render("{{html}} vs {{{html}}} vs {{&html}
 // Output: "&lt;p&gt;Hello &amp; World&lt;/p&gt; vs <p>Hello & World</p> vs <p>Hello & World</p>"
 
 ```
+
+### Custom Reder Function
+```cpp
+TEST_F(MustacheTest, CustomRendereFunc)
+{
+    std::string templ = "Hello {{#UPPER}}{{name}}{{/UPPER}}!";
+
+    boost::mustache::registerFunction(
+        "UPPER", [](std::string_view text, boost::mustache::Renderer* renderer, boost::mustache::Context* ctx) {
+            std::string result = renderer->render(text, ctx);
+            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+            return result;
+        });
+
+    // Test with PropertyTree
+    std::string ptreeResult = boost::mustache::render(templ, ptreeData);
+    EXPECT_EQ(ptreeResult, "Hello JOHN!");
+
+    // Test with JSON
+    std::string jsonResult = boost::mustache::render(templ, jsonData);
+    EXPECT_EQ(jsonResult, "Hello JOHN!");
+}
+```
