@@ -29,8 +29,7 @@ class Renderer;
 // Context base class
 class Context {
 public:
-    inline explicit Context(std::shared_ptr<PartialResolver> resolver = nullptr)
-        : m_partialResolver(std::move(resolver)) {}
+    inline explicit Context(std::shared_ptr<PartialResolver> resolver = nullptr) : m_partialResolver(std::move(resolver)) {}
 
     virtual ~Context() = default;
     virtual std::string stringValue(std::string_view key) const = 0;
@@ -39,20 +38,11 @@ public:
     virtual void push(std::string_view key, int index = -1) = 0;
     virtual void pop() = 0;
 
-    std::shared_ptr<PartialResolver> partialResolver() const
-    {
-        return m_partialResolver;
-    }
+    std::shared_ptr<PartialResolver> partialResolver() const { return m_partialResolver; }
 
-    virtual bool canEval(std::string_view) const
-    {
-        return false;
-    }
+    virtual bool canEval(std::string_view) const { return false; }
 
-    virtual std::string eval(std::string_view, std::string_view, Renderer*)
-    {
-        return {};
-    }
+    virtual std::string eval(std::string_view, std::string_view, Renderer *) { return {}; }
 
     std::string partialValue(std::string_view key) const
     {
@@ -65,11 +55,11 @@ private:
     std::shared_ptr<PartialResolver> m_partialResolver;
 };
 
-using RenderFunction = std::function<std::string(std::string_view, Renderer*, Context*)>;
+using RenderFunction = std::function<std::string(std::string_view, Renderer *, Context *)>;
 
 class FunctionRegistry {
 public:
-    static FunctionRegistry& instance()
+    static FunctionRegistry &instance()
     {
         static FunctionRegistry registry;
         return registry;
@@ -77,9 +67,9 @@ public:
 
     void registerFunction(std::string name, RenderFunction func) { m_functions[std::move(name)] = std::move(func); }
 
-    bool hasFunction(const std::string& name) const { return m_functions.find(name) != m_functions.end(); }
+    bool hasFunction(const std::string &name) const { return m_functions.find(name) != m_functions.end(); }
 
-    const RenderFunction& getFunction(const std::string& name) const { return m_functions.at(name); }
+    const RenderFunction &getFunction(const std::string &name) const { return m_functions.at(name); }
 
 private:
     std::unordered_map<std::string, RenderFunction> m_functions;
@@ -93,10 +83,9 @@ inline void registerFunction(std::string name, RenderFunction func)
 // PropertyTree context implementation
 class PropertyTreeContext : public Context {
 public:
-    using EvalFunction = std::function<std::string(std::string_view, Renderer*, Context*)>;
+    using EvalFunction = std::function<std::string(std::string_view, Renderer *, Context *)>;
 
-    explicit PropertyTreeContext(const boost::property_tree::ptree& root,
-                                 std::shared_ptr<PartialResolver> resolver = nullptr)
+    explicit PropertyTreeContext(const boost::property_tree::ptree &root, std::shared_ptr<PartialResolver> resolver = nullptr)
         : Context(std::move(resolver))
     {
         m_contextStack.push_back(root);
@@ -110,7 +99,7 @@ public:
 
         std::string keyStr{key};
 
-        for (const auto& it : boost::adaptors::reverse(m_contextStack)) {
+        for (const auto &it : boost::adaptors::reverse(m_contextStack)) {
             if (auto childIt = it.get_child_optional(keyStr)) {
                 return *childIt;
             }
@@ -126,7 +115,7 @@ public:
         try {
             bool boolValue = value.get_value<bool>();
             return !boolValue;
-        } catch (const boost::property_tree::ptree_bad_data&) {
+        } catch (const boost::property_tree::ptree_bad_data &) {
             try {
                 std::string stringValue = value.get_value<std::string>();
                 std::string lowerStringValue = stringValue;
@@ -135,8 +124,7 @@ public:
             } catch (...) {
                 return true;
             }
-        }
-        catch (...) {
+        } catch (...) {
             return true;
         }
     }
@@ -185,7 +173,7 @@ public:
 
         if (index >= 0) {
             int currentIndex = 0;
-            for (auto& val : value | boost::adaptors::map_values) {
+            for (auto &val : value | boost::adaptors::map_values) {
                 if (currentIndex == index) {
                     m_contextStack.push_back(val);
                     return;
@@ -212,12 +200,9 @@ public:
         return value.size();
     }
 
-    bool canEval(std::string_view key) const override
-    {
-        return FunctionRegistry::instance().hasFunction(std::string(key));
-    }
+    bool canEval(std::string_view key) const override { return FunctionRegistry::instance().hasFunction(std::string(key)); }
 
-    std::string eval(std::string_view key, std::string_view text, Renderer* renderer) override
+    std::string eval(std::string_view key, std::string_view text, Renderer *renderer) override
     {
         if (FunctionRegistry::instance().hasFunction(std::string(key))) {
             return FunctionRegistry::instance().getFunction(std::string(key))(text, renderer, this);
@@ -229,12 +214,10 @@ private:
     std::vector<boost::property_tree::ptree> m_contextStack;
 };
 
-
 // File-based partial resolver
 class PartialFileLoader : public PartialResolver {
 public:
-    explicit PartialFileLoader(std::string_view basePath)
-        : m_basePath(basePath) {}
+    explicit PartialFileLoader(std::string_view basePath) : m_basePath(basePath) {}
 
     std::string getPartial(std::string_view name) override
     {
@@ -262,22 +245,9 @@ private:
 
 // Tag structure
 struct Tag {
-    enum class type {
-        Null,
-        Value,
-        SectionStart,
-        InvertedSectionStart,
-        SectionEnd,
-        Partial,
-        Comment,
-        SetDelimiter
-    };
+    enum class type { Null, Value, SectionStart, InvertedSectionStart, SectionEnd, Partial, Comment, SetDelimiter };
 
-    enum class escape_mode {
-        Escape,
-        Unescape,
-        Raw
-    };
+    enum class escape_mode { Escape, Unescape, Raw };
 
     type type{type::Null};
     std::string key;
@@ -287,13 +257,9 @@ struct Tag {
     size_t indentation{0};
 };
 
-
 class Renderer {
 public:
-    Renderer()
-        : m_errorPos(std::nullopt)
-        , m_defaultTagStartMarker("{{")
-        , m_defaultTagEndMarker("}}")
+    Renderer() : m_errorPos(std::nullopt), m_defaultTagStartMarker("{{"), m_defaultTagEndMarker("}}")
     {
         m_tagStartMarker = m_defaultTagStartMarker;
         m_tagEndMarker = m_defaultTagEndMarker;
@@ -309,7 +275,7 @@ public:
         m_defaultTagEndMarker = std::string(endMarker);
     }
 
-    std::string render(const std::string_view templ, Context* context)
+    std::string render(const std::string_view templ, Context *context)
     {
         m_error.clear();
         m_errorPos = std::nullopt;
@@ -349,12 +315,8 @@ private:
     {
         std::string result{escaped};
         static const std::vector<std::pair<std::string_view, char>> replacements = {
-                {"&lt;", '<'},
-                {"&gt;", '>'},
-                {"&quot;", '"'},
-                {"&amp;", '&'}
-        };
-        for (const auto& [pattern, replacement] : replacements) {
+                {"&lt;", '<'}, {"&gt;", '>'}, {"&quot;", '"'}, {"&amp;", '&'}};
+        for (const auto &[pattern, replacement] : replacements) {
             size_t pos = 0;
             while ((pos = result.find(pattern, pos)) != std::string::npos) {
                 result.replace(pos, pattern.length(), 1, replacement);
@@ -364,7 +326,7 @@ private:
         return result;
     }
 
-    std::string render(std::string_view templ, size_t startPos, size_t endPos, Context* context)
+    std::string render(std::string_view templ, size_t startPos, size_t endPos, Context *context)
     {
         std::string output;
         size_t lastTagEnd = startPos;
@@ -409,9 +371,7 @@ private:
                         }
                     }
                     else if (context->canEval(tag.key)) {
-                        output += context->eval(tag.key,
-                                                templ.substr(tag.end, endTag.start - tag.end),
-                                                this);
+                        output += context->eval(tag.key, templ.substr(tag.end, endTag.start - tag.end), this);
                     }
                     else if (!context->isFalse(tag.key)) {
                         context->push(tag.key);
@@ -557,7 +517,7 @@ private:
         return tag;
     }
 
-    Tag findEndTag(std::string_view content, const Tag& startTag, size_t endPos)
+    Tag findEndTag(std::string_view content, const Tag &startTag, size_t endPos)
     {
         int tagDepth = 1;
         size_t pos = startTag.end;
@@ -567,8 +527,7 @@ private:
             if (nextTag.type == Tag::type::Null) {
                 return nextTag;
             }
-            else if (nextTag.type == Tag::type::SectionStart ||
-                nextTag.type == Tag::type::InvertedSectionStart) {
+            else if (nextTag.type == Tag::type::SectionStart || nextTag.type == Tag::type::InvertedSectionStart) {
                 ++tagDepth;
             }
             else if (nextTag.type == Tag::type::SectionEnd) {
@@ -642,7 +601,7 @@ private:
         return content.substr(start, pos - start);
     }
 
-    static void expandTag(Tag& tag, std::string_view content)
+    static void expandTag(Tag &tag, std::string_view content)
     {
         size_t start = tag.start;
         size_t end = tag.end;
@@ -684,8 +643,7 @@ private:
 // Add new JsonContext class
 class JsonContext : public Context {
 public:
-    explicit JsonContext(const boost::json::value& root,
-                         std::shared_ptr<PartialResolver> resolver = nullptr)
+    explicit JsonContext(const boost::json::value &root, std::shared_ptr<PartialResolver> resolver = nullptr)
         : Context(std::move(resolver))
     {
         m_contextStack.push_back(root);
@@ -699,9 +657,9 @@ public:
 
         std::string keyStr{key};
 
-        for (const auto& ctx : boost::adaptors::reverse(m_contextStack)) {
+        for (const auto &ctx : boost::adaptors::reverse(m_contextStack)) {
             if (ctx.is_object()) {
-                const auto& obj = ctx.as_object();
+                const auto &obj = ctx.as_object();
                 if (auto it = obj.find(keyStr); it != obj.end()) {
                     return it->value();
                 }
@@ -780,7 +738,7 @@ public:
         }
 
         if (index >= 0 && value.is_array()) {
-            const auto& arr = value.as_array();
+            const auto &arr = value.as_array();
             if (static_cast<size_t>(index) < arr.size()) {
                 m_contextStack.push_back(arr[index]);
             }
@@ -800,12 +758,9 @@ public:
         }
     }
 
-    bool canEval(std::string_view key) const override
-    {
-        return FunctionRegistry::instance().hasFunction(std::string(key));
-    }
+    bool canEval(std::string_view key) const override { return FunctionRegistry::instance().hasFunction(std::string(key)); }
 
-    std::string eval(std::string_view key, std::string_view text, Renderer* renderer) override
+    std::string eval(std::string_view key, std::string_view text, Renderer *renderer) override
     {
         if (FunctionRegistry::instance().hasFunction(std::string(key))) {
             return FunctionRegistry::instance().getFunction(std::string(key))(text, renderer, this);
@@ -817,18 +772,17 @@ private:
     std::vector<boost::json::value> m_contextStack;
 };
 
-
-inline std::string render(std::string_view templateString, const boost::property_tree::ptree& args)
+inline std::string render(std::string_view templateString, const boost::property_tree::ptree &args)
 {
     PropertyTreeContext context(args);
     Renderer renderer;
     return renderer.render(templateString, &context);
 }
 
-inline std::string render(std::string_view templateString, const boost::json::value& args)
+inline std::string render(std::string_view templateString, const boost::json::value &args)
 {
     JsonContext context(args);
     Renderer renderer;
     return renderer.render(templateString, &context);
 }
-}
+} // namespace boost::mustache
